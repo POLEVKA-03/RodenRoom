@@ -3,570 +3,293 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RodenRoom — Бронирование</title>
+<title>RodenRoom</title>
+<script src="//api.bitrix24.com/api/v1/"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg-primary: #1a1a1f;
-    --bg-secondary: #232329;
-    --bg-card: #2a2a32;
-    --bg-hover: #33333d;
-    --text-primary: #f0f0f2;
-    --text-secondary: #9a9aa8;
-    --text-muted: #6b6b7a;
-    --green-500: #34c759;
-    --green-600: #2aad4a;
-    --red-500: #e04b5a;
-    --orange-500: #ff9f0a;
-    --blue-500: #0a84ff;
-    --border: rgba(255,255,255,0.06);
-    --border-hover: rgba(255,255,255,0.12);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
-    --shadow-popup: 0 8px 40px rgba(0,0,0,0.5);
-    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Manrope', -apple-system, sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  .app-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 32px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-secondary);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .header-left { display: flex; align-items: center; gap: 16px; }
-  .header-logo {
-    width: 40px; height: 40px;
-    background: linear-gradient(135deg, #34c759, #28a745);
-    border-radius: var(--radius-md);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 18px; color: #fff;
-  }
-  .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-  .header-subtitle { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-  .header-right { display: flex; align-items: center; gap: 20px; }
-  .header-date { font-size: 14px; color: var(--text-secondary); font-weight: 500; text-align: right; }
-  .header-clock { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
-
-  .app-layout { display: grid; grid-template-columns: 1fr 400px; min-height: calc(100vh - 73px); }
-
-  .room-detail { padding: 36px 40px; overflow-y: auto; max-width: 780px; }
-  .room-name-row { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-  .room-name { font-size: 32px; font-weight: 800; letter-spacing: -0.8px; }
-  .room-capacity-badge {
-    padding: 4px 12px; border-radius: 20px;
-    background: var(--bg-card); border: 1px solid var(--border);
-    font-size: 13px; font-weight: 600; color: var(--text-secondary);
-  }
-  .room-features { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
-  .feature-tag {
-    font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px;
-    background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary);
-    display: flex; align-items: center; gap: 5px;
-  }
-
-  .status-banner {
-    border-radius: var(--radius-xl); padding: 28px; margin-bottom: 24px;
-    position: relative; overflow: hidden;
-  }
-  .status-banner::before {
-    content: ''; position: absolute; inset: 0; opacity: 0.06;
-    background: radial-gradient(circle at 80% 20%, currentColor, transparent 60%);
-    pointer-events: none;
-  }
-  .status-banner.free {
-    background: linear-gradient(135deg, #1a3f28, #1a3224);
-    border: 1px solid rgba(52,199,89,0.2); color: var(--green-500);
-  }
-  .status-banner.busy {
-    background: linear-gradient(135deg, #3f1a24, #321a22);
-    border: 1px solid rgba(224,75,90,0.2); color: var(--red-500);
-  }
-  .status-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .status-label { font-size: 24px; font-weight: 800; }
-  .status-timer { font-size: 15px; color: var(--text-secondary); font-weight: 600; }
-
-  .current-booking-info {
-    margin-top: 14px; display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px; background: rgba(0,0,0,0.2); border-radius: var(--radius-md);
-  }
-  .avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
-  }
-  .current-booking-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-  .current-booking-sub { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
-
-  .quick-book { margin-top: 20px; }
-  .quick-book-label { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px; }
-  .quick-book-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-  .quick-btn {
-    padding: 11px 22px; border-radius: var(--radius-md);
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-primary); font-family: inherit; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: all var(--transition);
-  }
-  .quick-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.2); transform: translateY(-1px); }
-  .quick-btn.primary { background: var(--green-500); border-color: var(--green-500); color: #fff; }
-  .quick-btn.primary:hover { background: var(--green-600); }
-  .quick-btn-extend {
-    padding: 11px 22px; border-radius: var(--radius-md);
-    background: transparent; border: 1px dashed rgba(255,255,255,0.15);
-    color: var(--text-secondary); font-family: inherit; font-size: 13px; font-weight: 500;
-    cursor: pointer; transition: all var(--transition);
-  }
-  .quick-btn-extend:hover { border-color: rgba(255,255,255,0.3); color: var(--text-primary); }
-
-  .next-meeting {
-    background: var(--bg-card); border-radius: var(--radius-lg);
-    padding: 20px 22px; border: 1px solid var(--border);
-  }
-  .next-meeting-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .next-meeting-label { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-  .next-meeting-time { font-size: 14px; font-weight: 700; }
-  .next-meeting-body { display: flex; align-items: center; gap: 12px; }
-  .meeting-title { font-size: 15px; font-weight: 700; }
-  .meeting-organizer { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
-  .attendees-row { display: flex; align-items: center; margin-left: auto; }
-  .attendee-avatar {
-    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg-card);
-    margin-left: -8px; display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: #fff;
-  }
-  .attendee-avatar:first-child { margin-left: 0; }
-  .attendee-count {
-    width: 28px; height: 28px; border-radius: 50%; background: var(--bg-hover);
-    border: 2px solid var(--bg-card); margin-left: -8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: var(--text-secondary);
-  }
-
-  .upcoming-section { margin-top: 20px; }
-  .upcoming-title { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-  .upcoming-item {
-    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius-md); margin-bottom: 8px; transition: background var(--transition);
-  }
-  .upcoming-item:hover { background: var(--bg-hover); }
-  .upcoming-time { font-size: 13px; font-weight: 700; color: var(--text-secondary); min-width: 100px; font-variant-numeric: tabular-nums; }
-  .upcoming-name { font-size: 14px; font-weight: 600; }
-  .upcoming-org { font-size: 12px; color: var(--text-secondary); }
-
-  .timeline-panel {
-    background: var(--bg-secondary); border-left: 1px solid var(--border);
-    display: flex; flex-direction: column; overflow: hidden;
-  }
-  .timeline-header {
-    padding: 20px 24px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .timeline-title { font-size: 15px; font-weight: 700; }
-  .timeline-nav { display: flex; gap: 4px; }
-  .timeline-nav-btn {
-    height: 32px; border-radius: var(--radius-sm); background: transparent;
-    border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-family: inherit; font-weight: 600;
-    transition: all var(--transition); padding: 0 10px;
-  }
-  .timeline-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .timeline-body { flex: 1; overflow-y: auto; position: relative; }
-  .timeline-grid { position: relative; padding-bottom: 40px; }
-  .time-row { display: grid; grid-template-columns: 52px 1fr; min-height: 56px; }
-  .time-label { font-size: 12px; font-weight: 600; color: var(--text-muted); padding: 8px 8px 0 0; text-align: right; font-variant-numeric: tabular-nums; }
-  .time-cell { border-top: 1px solid var(--border); position: relative; min-height: 56px; }
-  .time-cell:hover { background: rgba(255,255,255,0.015); }
-  .slot-add-btn {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    width: 26px; height: 26px; border-radius: 50%; background: transparent;
-    border: 1.5px solid rgba(255,255,255,0.08); color: var(--text-muted);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 15px; transition: all var(--transition); opacity: 0;
-  }
-  .time-cell:hover .slot-add-btn { opacity: 1; }
-  .slot-add-btn:hover { background: var(--green-500); border-color: var(--green-500); color: #fff; transform: translateY(-50%) scale(1.1); }
-
-  .booking-block {
-    position: absolute; left: 56px; right: 6px; border-radius: var(--radius-sm);
-    padding: 8px 12px; z-index: 2; overflow: hidden; cursor: pointer;
-    transition: transform var(--transition), box-shadow var(--transition);
-  }
-  .booking-block:hover { transform: scale(1.01); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-  .booking-block.occupied {
-    background: linear-gradient(135deg, rgba(224,75,90,0.22), rgba(224,75,90,0.12));
-    border: 1px solid rgba(224,75,90,0.25);
-  }
-  .booking-block.mine {
-    background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(10,132,255,0.12));
-    border: 1px solid rgba(10,132,255,0.25);
-  }
-  .booking-block-title { font-size: 12px; font-weight: 700; }
-  .booking-block-org { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-
-  .now-indicator { position: absolute; left: 52px; right: 0; height: 2px; background: var(--green-500); z-index: 10; pointer-events: none; }
-  .now-indicator::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--green-500); }
-  .now-badge { position: absolute; left: 0; top: -10px; font-size: 11px; font-weight: 700; color: var(--green-500); background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; z-index: 11; }
-
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; }
-  .modal-overlay.open { display: flex; }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-  .modal { background: var(--bg-card); border-radius: var(--radius-xl); width: 440px; max-width: 90vw; box-shadow: var(--shadow-popup); border: 1px solid var(--border-hover); animation: slideUp 0.25s ease; }
-  .modal-header { padding: 24px 24px 0; display: flex; align-items: center; justify-content: space-between; }
-  .modal-title { font-size: 18px; font-weight: 800; }
-  .modal-close { width: 32px; height: 32px; border-radius: var(--radius-sm); background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
-  .modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .modal-body { padding: 20px 24px; }
-  .form-group { margin-bottom: 16px; }
-  .form-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; display: block; }
-  .form-input { width: 100%; padding: 10px 14px; border-radius: var(--radius-md); background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); font-family: inherit; font-size: 14px; font-weight: 500; transition: border-color var(--transition); }
-  .form-input:focus { outline: none; border-color: var(--green-500); }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .modal-footer { padding: 0 24px 24px; display: flex; gap: 10px; justify-content: flex-end; }
-  .btn { padding: 10px 20px; border-radius: var(--radius-md); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--transition); border: none; }
-  .btn-secondary { background: var(--bg-hover); color: var(--text-secondary); }
-  .btn-secondary:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
-  .btn-primary { background: var(--green-500); color: #fff; }
-  .btn-primary:hover { background: var(--green-600); transform: translateY(-1px); }
-
-  .loading-overlay { position: fixed; inset: 0; background: var(--bg-primary); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; transition: opacity 0.4s ease; }
-  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-  .loading-spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--green-500); border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--bg-card); border: 1px solid var(--green-500); border-radius: var(--radius-md); padding: 14px 24px; font-size: 14px; font-weight: 600; color: var(--green-500); z-index: 300; box-shadow: var(--shadow-popup); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: center; gap: 8px; }
-  .toast.error { border-color: var(--red-500); color: var(--red-500); }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
-  .demo-notice { margin-top:24px;padding:12px 16px;border-radius:var(--radius-md);background:rgba(10,132,255,0.1);border:1px solid rgba(10,132,255,0.2);font-size:13px;color:var(--text-secondary); }
-  .demo-notice strong { color: var(--blue-500); }
-
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-
-  @media (max-width: 900px) {
-    .app-layout { grid-template-columns: 1fr; }
-    .timeline-panel { display: none; }
-    .room-detail { max-width: 100%; padding: 24px 20px; }
-  }
+:root{--bg1:#1a1a1f;--bg2:#232329;--bg3:#2a2a32;--bg4:#33333d;--t1:#f0f0f2;--t2:#9a9aa8;--t3:#6b6b7a;--g5:#34c759;--g6:#2aad4a;--r5:#e04b5a;--b5:#0a84ff;--bd:rgba(255,255,255,0.06);--bd2:rgba(255,255,255,0.12);--rs:8px;--rm:12px;--rx:20px;--tr:0.2s cubic-bezier(0.4,0,0.2,1)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',-apple-system,sans-serif;background:var(--bg1);color:var(--t1);min-height:100vh;overflow-x:hidden}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--bd);background:var(--bg2);position:sticky;top:0;z-index:100}
+.hdr-l{display:flex;align-items:center;gap:14px}.logo{width:38px;height:38px;background:linear-gradient(135deg,#34c759,#28a745);border-radius:var(--rm);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff}.hdr-t{font-size:19px;font-weight:800;letter-spacing:-0.5px}.hdr-s{font-size:12px;color:var(--t2);font-weight:500}.hdr-r{display:flex;align-items:center;gap:16px}.hdr-d{font-size:13px;color:var(--t2);font-weight:500;text-align:right}.hdr-c{font-size:32px;font-weight:800;letter-spacing:-1.5px;font-variant-numeric:tabular-nums}
+.lay{display:grid;grid-template-columns:1fr 380px;min-height:calc(100vh - 65px)}
+.main{padding:28px 32px;overflow-y:auto}
+.rn{font-size:28px;font-weight:800;letter-spacing:-0.8px;margin-bottom:20px}
+.sb{border-radius:var(--rx);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.sb::before{content:'';position:absolute;inset:0;opacity:0.06;background:radial-gradient(circle at 80% 20%,currentColor,transparent 60%);pointer-events:none}
+.sb.free{background:linear-gradient(135deg,#1a3f28,#1a3224);border:1px solid rgba(52,199,89,0.2);color:var(--g5)}
+.sb.busy{background:linear-gradient(135deg,#3f1a24,#321a22);border:1px solid rgba(224,75,90,0.2);color:var(--r5)}
+.sb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}.sb-lbl{font-size:22px;font-weight:800}.sb-tmr{font-size:14px;color:var(--t2);font-weight:600}
+.cur-info{margin-top:12px;display:flex;align-items:center;gap:12px;padding:12px;background:rgba(0,0,0,0.2);border-radius:var(--rm)}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;background-size:cover;background-position:center}
+.qb{margin-top:16px}.qb-l{font-size:13px;color:var(--t2);font-weight:600;margin-bottom:8px}.qb-btns{display:flex;gap:8px;flex-wrap:wrap}
+.qbtn{padding:10px 20px;border-radius:var(--rm);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:var(--t1);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all var(--tr)}.qbtn:hover{background:rgba(255,255,255,0.14);transform:translateY(-1px)}.qbtn.pr{background:var(--g5);border-color:var(--g5);color:#fff}.qbtn.pr:hover{background:var(--g6)}
+.qbtn-ext{padding:10px 20px;border-radius:var(--rm);background:0;border:1px dashed rgba(255,255,255,0.15);color:var(--t2);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all var(--tr)}.qbtn-ext:hover{border-color:rgba(255,255,255,0.3);color:var(--t1)}
+.sec-t{font-size:12px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px}
+.bk-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rm);margin-bottom:8px;transition:background var(--tr);cursor:pointer}.bk-item:hover{background:var(--bg4)}
+.bk-time{font-size:13px;font-weight:700;color:var(--t2);min-width:100px;font-variant-numeric:tabular-nums}.bk-name{font-size:14px;font-weight:600}.bk-org{font-size:12px;color:var(--t2)}
+.bk-acts{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity var(--tr)}.bk-item:hover .bk-acts{opacity:1}
+.bk-ab{width:28px;height:28px;border-radius:50%;background:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all var(--tr);border:1px solid}
+.bk-ab.edit{border-color:rgba(10,132,255,0.25);color:var(--b5)}.bk-ab.edit:hover{background:rgba(10,132,255,0.15)}
+.bk-ab.del{border-color:rgba(224,75,90,0.25);color:var(--r5)}.bk-ab.del:hover{background:rgba(224,75,90,0.15)}
+.bk-att{display:flex;margin-top:4px;gap:2px;flex-wrap:wrap}
+.bk-att-chip{font-size:10px;color:var(--t2);background:var(--bg4);padding:2px 6px;border-radius:10px}
+.tp{background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.tp-hdr{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}.tp-t{font-size:14px;font-weight:700}.tp-nav{display:flex;gap:4px}
+.tp-btn{height:30px;border-radius:var(--rs);background:0;border:1px solid var(--bd);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:inherit;font-weight:600;transition:all var(--tr);padding:0 8px}.tp-btn:hover{background:var(--bg4);color:var(--t1)}
+.tp-btn.cal-btn{color:var(--b5);border-color:rgba(10,132,255,0.3);position:relative}.tp-btn.cal-btn:hover{background:rgba(10,132,255,0.1)}
+.cal-input{position:absolute;opacity:0;width:0;height:0;top:0;left:0}
+.tp-body{flex:1;overflow-y:auto;position:relative}
+.tg{position:relative;padding-bottom:40px}
+.tr{display:grid;grid-template-columns:48px 1fr;min-height:52px}.tl{font-size:11px;font-weight:600;color:var(--t3);padding:7px 6px 0 0;text-align:right;font-variant-numeric:tabular-nums}.tc{border-top:1px solid var(--bd);position:relative;min-height:52px}.tc:hover{background:rgba(255,255,255,0.015)}
+.tc-add{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:0;border:1.5px solid rgba(255,255,255,0.08);color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all var(--tr);opacity:0}.tc:hover .tc-add{opacity:1}.tc-add:hover{background:var(--g5);border-color:var(--g5);color:#fff;transform:translateY(-50%) scale(1.1)}
+.bb{position:absolute;left:52px;right:4px;border-radius:var(--rs);padding:6px 10px;z-index:2;overflow:hidden;cursor:pointer;transition:transform var(--tr)}.bb:hover{transform:scale(1.01);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.bb.oc{background:linear-gradient(135deg,rgba(224,75,90,0.22),rgba(224,75,90,0.12));border:1px solid rgba(224,75,90,0.25)}.bb.mi{background:linear-gradient(135deg,rgba(10,132,255,0.22),rgba(10,132,255,0.12));border:1px solid rgba(10,132,255,0.25)}
+.bb-t{font-size:11px;font-weight:700}.bb-o{font-size:10px;color:var(--t2);margin-top:1px}
+.ni{position:absolute;left:48px;right:0;height:2px;background:var(--g5);z-index:10;pointer-events:none}.ni::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--g5)}.nb{position:absolute;left:0;top:-9px;font-size:10px;font-weight:700;color:var(--g5);background:var(--bg2);padding:2px 5px;border-radius:3px;z-index:11}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}.mo.open{display:flex}
+@keyframes su{from{opacity:0;transform:translateY(16px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.md{background:var(--bg3);border-radius:var(--rx);width:480px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.5);border:1px solid var(--bd2);animation:su 0.2s ease}
+.md-h{padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between}.md-t{font-size:17px;font-weight:800}.md-x{width:30px;height:30px;border-radius:var(--rs);background:0;border:0;color:var(--t3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all var(--tr)}.md-x:hover{background:var(--bg4);color:var(--t1)}
+.md-b{padding:16px 20px}.fg{margin-bottom:14px}.fl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;display:block}.fi{width:100%;padding:9px 12px;border-radius:var(--rm);background:var(--bg1);border:1px solid var(--bd);color:var(--t1);font-family:inherit;font-size:14px;font-weight:500;transition:border-color var(--tr)}.fi:focus{outline:0;border-color:var(--g5)}.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.md-f{padding:0 20px 20px;display:flex;gap:8px;justify-content:flex-end}.btn{padding:9px 18px;border-radius:var(--rm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all var(--tr);border:0}.btn-s{background:var(--bg4);color:var(--t2)}.btn-s:hover{background:rgba(255,255,255,0.12);color:var(--t1)}.btn-p{background:var(--g5);color:#fff}.btn-p:hover{background:var(--g6);transform:translateY(-1px)}.btn-d{background:rgba(224,75,90,0.15);color:var(--r5)}.btn-d:hover{background:rgba(224,75,90,0.25)}
+/* user picker */
+.up-box{position:relative}.up-search{width:100%;padding:9px 12px;border-radius:var(--rm);background:var(--bg1);border:1px solid var(--bd);color:var(--t1);font-family:inherit;font-size:13px;transition:border-color var(--tr)}.up-search:focus{outline:0;border-color:var(--g5)}
+.up-drop{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--rm);max-height:180px;overflow-y:auto;z-index:10;display:none}.up-drop.vis{display:block}
+.up-opt{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background var(--tr);font-size:13px}.up-opt:hover{background:var(--bg4)}.up-opt.sel{background:rgba(52,199,89,0.1)}
+.up-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.up-tag{display:flex;align-items:center;gap:4px;padding:4px 8px 4px 4px;background:var(--bg4);border-radius:16px;font-size:12px;font-weight:500;color:var(--t1)}
+.up-tag-x{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:var(--t2);transition:all var(--tr)}.up-tag-x:hover{background:rgba(224,75,90,0.3);color:var(--r5)}
+.ld{position:fixed;inset:0;background:var(--bg1);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity 0.4s ease}.ld.h{opacity:0;pointer-events:none}.sp{width:32px;height:32px;border:3px solid var(--bd);border-top-color:var(--g5);border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.tst{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg3);border:1px solid var(--g5);border-radius:var(--rm);padding:12px 20px;font-size:13px;font-weight:600;color:var(--g5);z-index:300;box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);display:flex;align-items:center;gap:6px}.tst.err{border-color:var(--r5);color:var(--r5)}.tst.show{transform:translateX(-50%) translateY(0)}
+.denied{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:16px;color:var(--t2)}
+.denied-icon{font-size:48px;opacity:0.3}.denied-t{font-size:20px;font-weight:700;color:var(--t1)}.denied-s{font-size:14px;max-width:400px;line-height:1.6}
+.en{margin-top:20px;padding:14px;border-radius:var(--rm);background:rgba(224,75,90,0.1);border:1px solid rgba(224,75,90,0.2);font-size:13px;color:var(--t2)}.en strong{color:var(--r5)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:0}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+@media(max-width:900px){.lay{grid-template-columns:1fr}.tp{display:none}.main{max-width:100%;padding:20px 16px}}
 </style>
 </head>
 <body>
-
-<div class="loading-overlay" id="loading">
-  <div class="loading-spinner"></div>
-  <div style="font-size:14px;color:var(--text-secondary);font-weight:500">Загрузка расписания RodenRoom...</div>
-</div>
-
-<header class="app-header">
-  <div class="header-left">
-    <div class="header-logo">R</div>
-    <div>
-      <div class="header-title">RodenRoom</div>
-      <div class="header-subtitle">Бронирование переговорной</div>
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="header-date" id="headerDate"></div>
-    <div class="header-clock" id="headerClock"></div>
-  </div>
-</header>
-
-<div class="app-layout">
-  <section class="room-detail" id="roomDetail"></section>
-  <aside class="timeline-panel">
-    <div class="timeline-header">
-      <div class="timeline-title">Расписание</div>
-      <div class="timeline-nav">
-        <button class="timeline-nav-btn" onclick="changeDate(-1)">◀</button>
-        <button class="timeline-nav-btn" onclick="changeDate(0)">Сегодня</button>
-        <button class="timeline-nav-btn" onclick="changeDate(1)">▶</button>
-      </div>
-    </div>
-    <div class="timeline-body" id="timelineBody"></div>
+<div class="ld" id="ld"><div class="sp"></div><div style="font-size:13px;color:var(--t2);font-weight:500">Загрузка RodenRoom...</div></div>
+<header class="hdr"><div class="hdr-l"><div class="logo">R</div><div><div class="hdr-t">RodenRoom</div><div class="hdr-s">Бронирование переговорной</div></div></div><div class="hdr-r"><div class="hdr-d" id="hDate"></div><div class="hdr-c" id="hClock"></div></div></header>
+<div class="lay">
+  <section class="main" id="detail"></section>
+  <aside class="tp">
+    <div class="tp-hdr"><div class="tp-t">Расписание</div><div class="tp-nav">
+      <button class="tp-btn" onclick="chgD(-1)">&#9664;</button>
+      <button class="tp-btn" onclick="chgD(0)">Сегодня</button>
+      <button class="tp-btn" onclick="chgD(1)">&#9654;</button>
+      <button class="tp-btn cal-btn" onclick="document.getElementById('dp').showPicker()">&#128197;<input type="date" class="cal-input" id="dp" onchange="pickD(this.value)"></button>
+    </div></div>
+    <div class="tp-body" id="tlB"></div>
   </aside>
 </div>
-
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Новое бронирование</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Название встречи</label>
-        <input class="form-input" id="meetingName" placeholder="Например: Стендап команды" />
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Начало</label><input class="form-input" type="time" id="meetingStart" /></div>
-        <div class="form-group"><label class="form-label">Конец</label><input class="form-input" type="time" id="meetingEnd" /></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Описание (необязательно)</label>
-        <input class="form-input" id="meetingDesc" placeholder="Тема обсуждения..." />
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" id="btnConfirm" onclick="confirmBooking()">Забронировать</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg"></span></div>
+<!-- MODAL -->
+<div class="mo" id="mo"><div class="md" id="mdContent"></div></div>
+<div class="tst" id="tst"><span id="tI"></span><span id="tM"></span></div>
 
 <script>
-// ══════════════════════════════════════════════════════════════
-//  КОНФИГУРАЦИЯ
-// ══════════════════════════════════════════════════════════════
-const CONFIG = {
-  // ── Вебхук (для тестирования без iframe) ──
-  // Разработчикам > Другое > Входящий вебхук. Права: calendar, user
-  WEBHOOK_URL: '', // 'https://your.bitrix24.ru/rest/1/xxxxx/'
+// ═══════════════════════════════════════════════
+//  БЕЛЫЙ СПИСОК — ID сотрудников с доступом
+//  Узнать ID: Профиль сотрудника > URL содержит /company/personal/user/XXX/
+//  Пустой массив = доступ у всех
+// ═══════════════════════════════════════════════
+var ALLOWED_USERS = []; // например: [1, 5, 42, 100]
 
-  START_HOUR: 8,
-  END_HOUR: 20,
+var SH=8,EH=20,bk=[],sD=new Date(),uid=null,ok=false,errM='',uc={},allUsers=[],selAtt=[],editId=null;
+
+function fH(h){var a=Math.floor(h),b=Math.round((h-a)*60);return String(a).padStart(2,'0')+':'+String(b).padStart(2,'0')}
+function fI(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function tH(d){return d.getHours()+d.getMinutes()/60}
+function ini(n){return n.split(' ').map(function(w){return w[0]||''}).join('').toUpperCase()}
+var CL=['#667eea','#764ba2','#e0784b','#34c759','#ff9f0a','#af52de','#ff6b6b','#00b4d8'];
+function co(n){var h=0;for(var i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return CL[Math.abs(h)%CL.length]}
+function bx(m,p){return new Promise(function(y,n){BX24.callMethod(m,p||{},function(r){if(r.error()){var e=r.error();n(new Error(e.ex?e.ex.error_description:String(e)))}else y(r.data())})})}
+
+async function gU(id){
+  if(uc[id])return uc[id];
+  try{var l=await bx('user.get',{ID:id});if(l&&l.length){var u=l[0];uc[id]={name:((u.NAME||'')+' '+(u.LAST_NAME||'')).trim(),photo:u.PERSONAL_PHOTO||''};return uc[id]}}catch(e){}
+  return{name:'Сотрудник',photo:''}
+}
+async function lU(){try{var u=await bx('user.current');uid=String(u.ID);return uid}catch(e){return'1'}}
+async function loadAllUsers(){
+  if(allUsers.length)return;
+  try{
+    var list=await bx('user.get',{filter:{ACTIVE:true},start:0});
+    if(list&&list.length){
+      allUsers=list.map(function(u){return{id:String(u.ID),name:((u.NAME||'')+' '+(u.LAST_NAME||'')).trim(),photo:u.PERSONAL_PHOTO||'',dept:u.UF_DEPARTMENT?u.UF_DEPARTMENT[0]:''}});
+    }
+  }catch(e){console.error('loadAllUsers:',e)}
+}
+async function lB(){
+  var ds=fI(sD);
+  try{
+    var mi=uid||await lU();
+    var ev=await bx('calendar.event.get',{type:'user',ownerId:mi,from:ds+'T00:00:00',to:ds+'T23:59:59'});
+    if(!ev||!Array.isArray(ev))ev=[];
+    var fl=ev.filter(function(e){return(e.LOCATION||'').toLowerCase().indexOf('rodenroom')!==-1});
+    var r=[];
+    for(var i=0;i<fl.length;i++){
+      var e=fl[i],cid=String(e.CREATED_BY||e.OWNER_ID||''),usr=await gU(cid);
+      var attIds=[];if(e.ATTENDEE_LIST)attIds=e.ATTENDEE_LIST.map(function(a){return String(a.id||a.ID||a)});
+      var attNames=[];
+      for(var j=0;j<attIds.length;j++){if(attIds[j]!==cid){var au=await gU(attIds[j]);attNames.push(au.name)}}
+      r.push({id:e.ID,title:e.NAME||'Встреча',desc:e.DESCRIPTION||'',org:usr.name||'Сотрудник',photo:usr.photo,cid:cid,sh:tH(new Date(e.DATE_FROM)),eh:tH(new Date(e.DATE_TO)),attIds:attIds,attNames:attNames,mine:cid===uid})
+    }
+    bk=r;errM='';
+  }catch(e){errM=e.message;bk=[]}
+}
+async function cB(s,e,n,d,att){
+  var ds=fI(sD),mi=uid||await lU();
+  var params={type:'user',ownerId:mi,name:n||'Бронирование RodenRoom',description:d||'',from:ds+'T'+fH(s)+':00',to:ds+'T'+fH(e)+':00',location:'RodenRoom'};
+  if(att&&att.length)params.attendees=att;
+  return bx('calendar.event.add',params);
+}
+async function uB(id,s,e,n,d,att){
+  var ds=fI(sD),mi=uid||await lU();
+  var params={type:'user',ownerId:mi,id:id,name:n||'Встреча',description:d||'',from:ds+'T'+fH(s)+':00',to:ds+'T'+fH(e)+':00',location:'RodenRoom'};
+  if(att&&att.length)params.attendees=att;
+  return bx('calendar.event.update',params);
+}
+async function dB(id){return bx('calendar.event.delete',{type:'user',ownerId:uid,id:id})}
+
+function uC(){document.getElementById('hClock').textContent=new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}
+setInterval(uC,1000);uC();
+function uD(){var D=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'],M=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],d=sD;document.getElementById('hDate').textContent=D[d.getDay()]+', '+d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear()}
+
+function gS(){
+  var nH=tH(new Date()),s=bk.slice().sort(function(a,b){return a.sh-b.sh});
+  var c=s.find(function(b){return nH>=b.sh&&nH<b.eh});
+  if(c){var ml=Math.round((c.eh-nH)*60);return{st:'busy',tx:'Ещё '+ml+' мин до '+fH(c.eh),cur:c,nxt:s.find(function(b){return b.sh>=c.eh})}}
+  var nx=s.find(function(b){return b.sh>nH});
+  if(nx){var mu=Math.round((nx.sh-nH)*60),h=Math.floor(mu/60),m=mu%60;return{st:'free',tx:h>0?'Ещё '+h+' ч '+(m>0?m+' мин':'')+' до '+fH(nx.sh):'Ещё '+m+' мин до '+fH(nx.sh),cur:null,nxt:nx}}
+  return{st:'free',tx:'Свободно до конца дня',cur:null,nxt:null}
+}
+function avH(b,sz){sz=sz||36;if(b.photo)return'<div class="av" style="width:'+sz+'px;height:'+sz+'px;background-image:url('+b.photo+');background-color:'+co(b.org)+'"></div>';return'<div class="av" style="width:'+sz+'px;height:'+sz+'px;font-size:'+Math.round(sz*0.36)+'px;background:'+co(b.org)+'">'+ini(b.org)+'</div>'}
+
+function rD(){
+  var i=gS(),el=document.getElementById('detail'),sc=i.st==='busy'?'busy':'free';
+  var cH='';if(i.cur)cH='<div class="cur-info">'+avH(i.cur)+'<div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+i.cur.title+'</div><div style="font-size:12px;color:var(--t2);margin-top:1px">'+i.cur.org+' &middot; '+fH(i.cur.sh)+'&ndash;'+fH(i.cur.eh)+'</div></div></div>';
+  var qb='';if(i.st==='free')qb='<div class="qb"><div class="qb-l">Забронировать сейчас:</div><div class="qb-btns"><button class="qbtn pr" onclick="qB(15)">15 мин</button><button class="qbtn" onclick="qB(30)">30 мин</button><button class="qbtn" onclick="qB(60)">1 час</button><button class="qbtn-ext" onclick="qBN()">До следующего бронирования &darr;</button></div></div>';
+  var all=bk.slice().sort(function(a,b){return a.sh-b.sh}),aH='';
+  if(all.length){
+    aH='<div class="sec-t">Все бронирования на сегодня</div>';
+    all.forEach(function(b){
+      var acts='';
+      if(b.mine)acts='<div class="bk-acts"><button class="bk-ab edit" onclick="event.stopPropagation();opEdit(\''+b.id+'\')" title="Редактировать">&#9998;</button><button class="bk-ab del" onclick="event.stopPropagation();dE(\''+b.id+'\')" title="Удалить">&#10005;</button></div>';
+      var attH='';if(b.attNames.length)attH='<div class="bk-att">'+b.attNames.map(function(n){return'<span class="bk-att-chip">'+n+'</span>'}).join('')+'</div>';
+      aH+='<div class="bk-item" onclick="opEdit(\''+b.id+'\')">'+avH(b,32)+'<div class="bk-time">'+fH(b.sh)+' &ndash; '+fH(b.eh)+'</div><div style="flex:1"><div class="bk-name">'+b.title+'</div><div class="bk-org">'+b.org+'</div>'+attH+'</div>'+acts+'</div>'
+    })
+  } else aH='<div class="sec-t">Бронирования</div><div style="color:var(--t3);font-size:13px;padding:12px 0">Нет бронирований на этот день</div>';
+  var eH='';if(errM)eH='<div class="en"><strong>Ошибка:</strong> '+errM+'</div>';
+  el.innerHTML='<div class="rn">RodenRoom</div><div class="sb '+sc+'"><div class="sb-top"><span class="sb-lbl">'+(i.st==='busy'?'&#x25CF; Занято':'&#x25CF; Свободно')+'</span><span class="sb-tmr">'+i.tx+'</span></div>'+cH+qb+'</div>'+aH+eH
+}
+function rT(){
+  var bd=document.getElementById('tlB'),SZ=52,nH=tH(new Date()),h='<div class="tg">',x;
+  for(x=SH;x<EH;x++)h+='<div class="tr"><div class="tl">'+fH(x)+'</div><div class="tc"><button class="tc-add" onclick="opMo('+x+')">+</button></div></div>';
+  bk.slice().sort(function(a,b){return a.sh-b.sh}).forEach(function(b){var t=(b.sh-SH)*SZ,ht=Math.max((b.eh-b.sh)*SZ,24);h+='<div class="bb '+(b.mine?'mi':'oc')+'" style="top:'+t+'px;height:'+ht+'px"><div class="bb-t">'+b.title+'</div>'+(ht>30?'<div class="bb-o">'+b.org+'</div>':'')+'</div>'});
+  if(nH>=SH&&nH<=EH)h+='<div class="ni" style="top:'+((nH-SH)*SZ)+'px"><div class="nb">'+fH(nH)+'</div></div>';
+  h+='</div>';bd.innerHTML=h;bd.scrollTop=Math.max(0,(nH-SH)*SZ-80)
+}
+function rA(){rD();rT()}
+
+// ── Modal helpers ──
+function userPickerHtml(){
+  return '<div class="fg"><label class="fl">Участники</label><div class="up-box"><input class="up-search" id="upS" placeholder="Поиск сотрудника..." oninput="filterUsers(this.value)" onfocus="document.getElementById(\'upDrop\').classList.add(\'vis\')" /><div class="up-drop" id="upDrop"></div></div><div class="up-tags" id="upTags"></div></div>';
+}
+function renderPickerTags(){
+  var el=document.getElementById('upTags');if(!el)return;
+  el.innerHTML=selAtt.map(function(u){return'<div class="up-tag">'+avH({org:u.name,photo:u.photo},20)+'<span>'+u.name+'</span><span class="up-tag-x" onclick="rmAtt(\''+u.id+'\')">&times;</span></div>'}).join('');
+}
+window.filterUsers=function(q){
+  var drop=document.getElementById('upDrop');if(!drop)return;
+  q=(q||'').toLowerCase();
+  var filtered=allUsers.filter(function(u){return u.id!==uid&&u.name.toLowerCase().indexOf(q)!==-1}).slice(0,15);
+  drop.innerHTML=filtered.map(function(u){
+    var isSel=selAtt.some(function(s){return s.id===u.id});
+    return'<div class="up-opt'+(isSel?' sel':'')+'" onclick="togAtt(\''+u.id+'\')">'+avH({org:u.name,photo:u.photo},24)+'<span>'+u.name+'</span></div>'
+  }).join('')||'<div style="padding:12px;color:var(--t3);font-size:13px">Никого не найдено</div>';
+  drop.classList.add('vis');
 };
+window.togAtt=function(id){
+  var exists=selAtt.findIndex(function(s){return s.id===id});
+  if(exists>=0){selAtt.splice(exists,1)}else{var u=allUsers.find(function(u){return u.id===id});if(u)selAtt.push(u)}
+  renderPickerTags();filterUsers(document.getElementById('upS')?document.getElementById('upS').value:'');
+};
+window.rmAtt=function(id){selAtt=selAtt.filter(function(s){return s.id!==id});renderPickerTags();filterUsers('')};
 
-// ══════════════════════════════════════════════════════════════
-//  BITRIX24 REST API LAYER
-// ══════════════════════════════════════════════════════════════
-class Bitrix24API {
-  constructor() { this._userId = null; }
-
-  async init() {
-    if (typeof BX24 !== 'undefined') {
-      return new Promise(r => BX24.init(() => { BX24.fitWindow(); r(); }));
-    }
-  }
-
-  async call(method, params = {}) {
-    if (typeof BX24 !== 'undefined') {
-      return new Promise((resolve, reject) => {
-        BX24.callMethod(method, params, res => {
-          if (res.error()) reject(new Error(res.error().ex.error_description || res.error()));
-          else resolve(res.data());
-        });
-      });
-    }
-    if (!CONFIG.WEBHOOK_URL) return null;
-    const resp = await fetch(`${CONFIG.WEBHOOK_URL}${method}.json`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error_description || data.error);
-    return data.result;
-  }
-
-  async getUserId() {
-    if (this._userId) return this._userId;
-    try { const u = await this.call('user.current'); this._userId = u.ID; return u.ID; }
-    catch { return 1; }
-  }
-
-  async getBookings(date) {
-    const ds = fmtISO(date);
-    try {
-      const events = await this.call('calendar.event.get', {
-        type: 'user', ownerId: await this.getUserId(),
-        from: `${ds}T00:00:00`, to: `${ds}T23:59:59`,
-      });
-      if (!events) return null;
-      const uid = this._userId;
-      return events
-        .filter(ev => (ev.LOCATION || '').toLowerCase().includes('rodenroom'))
-        .map(ev => ({
-          id: ev.ID, title: ev.NAME,
-          organizer: ev.CREATED_BY_NAME || 'Сотрудник',
-          startHour: toH(new Date(ev.DATE_FROM)),
-          endHour: toH(new Date(ev.DATE_TO)),
-          attendees: ev.ATTENDEE_LIST ? ev.ATTENDEE_LIST.length : 1,
-          mine: String(ev.CREATED_BY) === String(uid),
-        }));
-    } catch(e) { console.error(e); return null; }
-  }
-
-  async createBooking(date, startH, endH, name, desc) {
-    const ds = fmtISO(date);
-    return this.call('calendar.event.add', {
-      type: 'user', ownerId: await this.getUserId(),
-      name: name || 'Бронирование RodenRoom',
-      description: desc || '',
-      from: `${ds}T${fmtH(startH)}:00`,
-      to:   `${ds}T${fmtH(endH)}:00`,
-      location: 'RodenRoom',
+function showModal(title,bkData,isEdit){
+  editId=isEdit?(bkData.id||null):null;
+  selAtt=[];
+  if(bkData.attIds){
+    bkData.attIds.forEach(function(aid){
+      if(aid!==uid&&aid!==(bkData.cid||'')){
+        var u=allUsers.find(function(x){return x.id===aid});
+        if(u)selAtt.push(u);
+      }
     });
   }
+  var delBtn=isEdit&&bkData.mine?'<button class="btn btn-d" onclick="dE(\''+bkData.id+'\');clMo()">Удалить</button>':'';
+  var saveLabel=isEdit?'Сохранить':'Забронировать';
+  var readOnly=isEdit&&!bkData.mine;
+  document.getElementById('mdContent').innerHTML=
+    '<div class="md-h"><div class="md-t">'+title+'</div><button class="md-x" onclick="clMo()">&#10005;</button></div>'+
+    '<div class="md-b">'+
+      '<div class="fg"><label class="fl">Название встречи</label><input class="fi" id="mN" value="'+(bkData.title||'')+'" placeholder="Например: Стендап команды"'+(readOnly?' disabled':'')+'/></div>'+
+      '<div class="fr"><div class="fg"><label class="fl">Начало</label><input class="fi" type="time" id="mS" value="'+(bkData.startT||'')+'"'+(readOnly?' disabled':'')+'/></div><div class="fg"><label class="fl">Конец</label><input class="fi" type="time" id="mE" value="'+(bkData.endT||'')+'"'+(readOnly?' disabled':'')+'/></div></div>'+
+      '<div class="fg"><label class="fl">Описание</label><input class="fi" id="mD" value="'+(bkData.desc||'')+'" placeholder="Тема обсуждения..."'+(readOnly?' disabled':'')+'/></div>'+
+      (readOnly?'':userPickerHtml())+
+    '</div>'+
+    '<div class="md-f">'+delBtn+(readOnly?'<button class="btn btn-s" onclick="clMo()">Закрыть</button>':'<button class="btn btn-s" onclick="clMo()">Отмена</button><button class="btn btn-p" onclick="cfm()">'+saveLabel+'</button>')+'</div>';
+  document.getElementById('mo').classList.add('open');
+  if(!readOnly){renderPickerTags();filterUsers('')}
 }
 
-// ══════════════════════════════════════════════════════════════
-//  HELPERS
-// ══════════════════════════════════════════════════════════════
-function fmtH(h) { const hh=Math.floor(h), mm=Math.round((h-hh)*60); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`; }
-function fmtISO(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function toH(d) { return d.getHours()+d.getMinutes()/60; }
-function initials(n) { return n.split(' ').map(w=>w[0]).join('').toUpperCase(); }
-const COLORS = ['#667eea','#764ba2','#e0784b','#34c759','#ff9f0a','#af52de','#ff6b6b','#00b4d8'];
-function colorFor(n) { let h=0; for(let i=0;i<n.length;i++) h=n.charCodeAt(i)+((h<<5)-h); return COLORS[Math.abs(h)%COLORS.length]; }
+function opMo(h){showModal('Новое бронирование',{title:'',startT:fH(h),endT:fH(h+1),desc:'',attIds:[]},false)}
+function opEdit(id){
+  var b=bk.find(function(x){return String(x.id)===String(id)});
+  if(!b)return;
+  showModal(b.mine?'Редактировать бронирование':'Просмотр бронирования',{id:b.id,title:b.title,startT:fH(b.sh),endT:fH(b.eh),desc:b.desc,attIds:b.attIds,mine:b.mine,cid:b.cid},true);
+}
+function clMo(){document.getElementById('mo').classList.remove('open');editId=null;selAtt=[]}
 
-// ══════════════════════════════════════════════════════════════
-//  DEMO DATA
-// ══════════════════════════════════════════════════════════════
-const PEOPLE = ['Александр Роден','Анна Петрова','Михаил Сидоров','Ольга Козлова','Дмитрий Волков','Елена Новикова'];
-const NAMES = ['Ежедневный стендап','Ретро спринта','Созвон с клиентом','Планирование Q2','Дизайн-ревью','1-on-1','Демо продукта'];
-function demoBookings() {
-  const b=[]; let hr=9;
-  for(let i=0;i<4&&hr<18;i++){
-    hr+=Math.random()>0.3?0.5:0;
-    const dur=[0.5,1,1.5][Math.floor(Math.random()*3)];
-    const end=Math.min(hr+dur,19);
-    b.push({id:'d-'+i,title:NAMES[i%NAMES.length],organizer:PEOPLE[i%PEOPLE.length],startHour:hr,endHour:end,attendees:1+Math.floor(Math.random()*5),mine:i===0});
-    hr=end+(Math.random()>0.4?0.5:0);
-  }
-  return b;
+async function cfm(){
+  var n=document.getElementById('mN').value||'Встреча',d=document.getElementById('mD').value||'';
+  var sp=document.getElementById('mS').value.split(':'),ep=document.getElementById('mE').value.split(':');
+  var s=+sp[0]+(+sp[1])/60,e=+ep[0]+(+ep[1])/60;
+  var attList=selAtt.map(function(u){return+u.id});
+  attList.push(+uid);
+  clMo();
+  try{
+    if(editId){await uB(editId,s,e,n,d,attList);tt('Бронирование обновлено')}
+    else{await cB(s,e,n,d,attList);tt(n+' — '+fH(s)+'–'+fH(e))}
+    await boot();
+  }catch(x){tt(x.message,1)}
 }
 
-// ══════════════════════════════════════════════════════════════
-//  APP STATE
-// ══════════════════════════════════════════════════════════════
-const api = new Bitrix24API();
-let bookings = [], selectedDate = new Date(), useDemo = true;
+function chgD(d){if(d===0)sD=new Date();else sD.setDate(sD.getDate()+d);uD();boot()}
+function pickD(v){if(!v)return;var p=v.split('-');sD=new Date(+p[0],+p[1]-1,+p[2]);uD();boot()}
+async function qB(m){var n=tH(new Date()),e=n+m/60;try{await cB(n,e,'Быстрое бронирование','',[+uid]);tt('Забронировано на '+m+' мин');await boot()}catch(x){tt(x.message,1)}}
+async function qBN(){var i=gS(),n=tH(new Date()),e=i.nxt?i.nxt.sh:EH,m=Math.round((e-n)*60);try{await cB(n,e,'Бронирование RodenRoom','',[+uid]);tt('Забронировано на '+m+' мин');await boot()}catch(x){tt(x.message,1)}}
+async function dE(id){if(!confirm('Удалить это бронирование?'))return;try{await dB(id);tt('Удалено');await boot()}catch(x){tt(x.message,1)}}
 
-// ── Clock ──
-function updateClock() { document.getElementById('headerClock').textContent = new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); }
-setInterval(updateClock,1000); updateClock();
+function tt(m,e){var t=document.getElementById('tst');document.getElementById('tM').textContent=m;document.getElementById('tI').textContent=e?'✗':'✓';if(e)t.classList.add('err');else t.classList.remove('err');t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3500)}
 
-function updateDateLabel() {
-  const D=['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
-  const M=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const d=selectedDate;
-  document.getElementById('headerDate').textContent=`${D[d.getDay()]}, ${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-function getStatus() {
-  const nowH=toH(new Date()), sorted=[...bookings].sort((a,b)=>a.startHour-b.startHour);
-  const cur=sorted.find(b=>nowH>=b.startHour&&nowH<b.endHour);
-  if(cur){
-    const ml=Math.round((cur.endHour-nowH)*60);
-    return{status:'busy',text:`Ещё ${ml} мин до ${fmtH(cur.endHour)}`,current:cur,next:sorted.find(b=>b.startHour>=cur.endHour)};
-  }
-  const next=sorted.find(b=>b.startHour>nowH);
-  if(next){
-    const mu=Math.round((next.startHour-nowH)*60),h=Math.floor(mu/60),m=mu%60;
-    return{status:'free',text:h>0?`Ещё ${h} ч ${m>0?m+' мин':''} до ${fmtH(next.startHour)}`:`Ещё ${m} мин до ${fmtH(next.startHour)}`,current:null,next,freeMin:mu};
-  }
-  return{status:'free',text:'Свободно до конца дня',current:null,next:null,freeMin:999};
-}
-
-function renderDetail() {
-  const info=getStatus(), el=document.getElementById('roomDetail'), sc=info.status==='busy'?'busy':'free';
-  let curHtml='';
-  if(info.current) curHtml=`<div class="current-booking-info"><div class="avatar" style="background:${colorFor(info.current.organizer)}">${initials(info.current.organizer)}</div><div><div class="current-booking-title">${info.current.title}</div><div class="current-booking-sub">${info.current.organizer} · ${fmtH(info.current.startHour)}–${fmtH(info.current.endHour)}</div></div></div>`;
-  let qb='';
-  if(info.status==='free') qb=`<div class="quick-book"><div class="quick-book-label">Забронировать сейчас:</div><div class="quick-book-buttons"><button class="quick-btn primary" onclick="quickBook(15)">15 мин</button><button class="quick-btn" onclick="quickBook(30)">30 мин</button><button class="quick-btn" onclick="quickBook(60)">1 час</button><button class="quick-btn-extend" onclick="quickBookUntilNext()">До следующего бронирования ↓</button></div></div>`;
-  let nextHtml='';
-  if(info.next){
-    const av=Array.from({length:Math.min(info.next.attendees,3)},(_,i)=>`<div class="attendee-avatar" style="background:${COLORS[i]}">${initials(PEOPLE[i%PEOPLE.length])}</div>`).join('');
-    const ex=info.next.attendees>3?`<div class="attendee-count">+${info.next.attendees-3}</div>`:'';
-    nextHtml=`<div class="next-meeting" style="margin-top:20px"><div class="next-meeting-header"><span class="next-meeting-label">Следующее</span><span class="next-meeting-time">${fmtH(info.next.startHour)} – ${fmtH(info.next.endHour)}</span></div><div class="next-meeting-body"><div class="avatar" style="width:40px;height:40px;font-size:15px;background:${colorFor(info.next.organizer)}">${initials(info.next.organizer)}</div><div style="flex:1"><div class="meeting-title">${info.next.title}</div><div class="meeting-organizer">${info.next.organizer}</div></div><div class="attendees-row">${av}${ex}</div></div></div>`;
-  }
-  const nowH=toH(new Date());
-  const upcoming=[...bookings].filter(b=>b.startHour>nowH&&b!==info.next).sort((a,b)=>a.startHour-b.startHour);
-  let upHtml='';
-  if(upcoming.length) upHtml=`<div class="upcoming-section"><div class="upcoming-title">Позже сегодня</div>${upcoming.map(b=>`<div class="upcoming-item"><div class="upcoming-time">${fmtH(b.startHour)} – ${fmtH(b.endHour)}</div><div style="flex:1"><div class="upcoming-name">${b.title}</div><div class="upcoming-org">${b.organizer}</div></div><div class="avatar" style="width:32px;height:32px;font-size:11px;background:${colorFor(b.organizer)}">${initials(b.organizer)}</div></div>`).join('')}</div>`;
-  const demo=useDemo?'<div class="demo-notice"><strong>Демо-режим</strong> — тестовые данные. Подключите Битрикс24 для реальных бронирований.</div>':'';
-  el.innerHTML=`<div class="room-name-row"><div class="room-name">RodenRoom</div><div class="room-capacity-badge">👥 до 10 человек</div></div><div class="room-features"><span class="feature-tag">📺 Телевизор</span><span class="feature-tag">🎙 ВКС</span><span class="feature-tag">📋 Маркерная доска</span><span class="feature-tag">☕ Кофемашина</span></div><div class="status-banner ${sc}"><div class="status-top"><span class="status-label">${info.status==='busy'?'● Занято':'● Свободно'}</span><span class="status-timer">${info.text}</span></div>${curHtml}${qb}</div>${nextHtml}${upHtml}${demo}`;
-}
-
-function renderTimeline() {
-  const body=document.getElementById('timelineBody'),SH=56,{START_HOUR:SHR,END_HOUR:EHR}=CONFIG,nowH=toH(new Date());
-  let html='<div class="timeline-grid">';
-  for(let h=SHR;h<EHR;h++) html+=`<div class="time-row"><div class="time-label">${fmtH(h)}</div><div class="time-cell"><button class="slot-add-btn" onclick="openModalAt(${h})">+</button></div></div>`;
-  [...bookings].sort((a,b)=>a.startHour-b.startHour).forEach(b=>{
-    const top=(b.startHour-SHR)*SH,height=Math.max((b.endHour-b.startHour)*SH,28);
-    html+=`<div class="booking-block ${b.mine?'mine':'occupied'}" style="top:${top}px;height:${height}px"><div class="booking-block-title">${b.title}</div>${height>36?`<div class="booking-block-org">${b.organizer} · ${fmtH(b.startHour)}–${fmtH(b.endHour)}</div>`:''}</div>`;
-  });
-  if(nowH>=SHR&&nowH<=EHR) html+=`<div class="now-indicator" style="top:${(nowH-SHR)*SH}px"><div class="now-badge">${fmtH(nowH)}</div></div>`;
-  html+='</div>'; body.innerHTML=html;
-  body.scrollTop=Math.max(0,(nowH-SHR)*SH-100);
-}
-
-function renderAll(){ renderDetail(); renderTimeline(); }
-
-async function loadData(){
-  const res=await api.getBookings(selectedDate);
-  if(res!==null){bookings=res;useDemo=false;}else{bookings=demoBookings();useDemo=true;}
-}
-
-function changeDate(d){ if(d===0)selectedDate=new Date();else selectedDate.setDate(selectedDate.getDate()+d); updateDateLabel(); boot(); }
-
-async function quickBook(min){
-  const nowH=toH(new Date()),endH=nowH+min/60;
-  if(!useDemo){try{await api.createBooking(selectedDate,nowH,endH,'Быстрое бронирование');showToast(`Забронировано на ${min} мин`);await boot();return;}catch(e){showToast(e.message,true);return;}}
-  bookings.push({id:'q-'+Date.now(),title:'Быстрое бронирование',organizer:'Вы',startHour:nowH,endHour:endH,attendees:1,mine:true});
-  showToast(`Забронировано на ${min} мин`); renderAll();
-}
-
-async function quickBookUntilNext(){
-  const info=getStatus(),nowH=toH(new Date()),endH=info.next?info.next.startHour:CONFIG.END_HOUR,mins=Math.round((endH-nowH)*60);
-  if(!useDemo){try{await api.createBooking(selectedDate,nowH,endH,'Бронирование RodenRoom');showToast(`Забронировано на ${mins} мин`);await boot();return;}catch(e){showToast(e.message,true);return;}}
-  bookings.push({id:'qu-'+Date.now(),title:'Бронирование RodenRoom',organizer:'Вы',startHour:nowH,endHour:endH,attendees:1,mine:true});
-  showToast(`Забронировано на ${mins} мин`); renderAll();
-}
-
-function openModalAt(h){
-  document.getElementById('meetingStart').value=fmtH(h);
-  document.getElementById('meetingEnd').value=fmtH(h+1);
-  document.getElementById('meetingName').value='';
-  document.getElementById('meetingDesc').value='';
-  document.getElementById('modalOverlay').classList.add('open');
-}
-function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
-
-async function confirmBooking(){
-  const name=document.getElementById('meetingName').value||'Встреча',desc=document.getElementById('meetingDesc').value;
-  const sp=document.getElementById('meetingStart').value.split(':'),ep=document.getElementById('meetingEnd').value.split(':');
-  const sH=+sp[0]+sp[1]/60,eH=+ep[0]+ep[1]/60;
-  closeModal();
-  if(!useDemo){try{await api.createBooking(selectedDate,sH,eH,name,desc);showToast(`«${name}» — ${fmtH(sH)}–${fmtH(eH)}`);await boot();return;}catch(e){showToast(e.message,true);return;}}
-  bookings.push({id:'c-'+Date.now(),title:name,organizer:'Вы',startHour:sH,endHour:eH,attendees:1,mine:true});
-  showToast(`«${name}» — ${fmtH(sH)}–${fmtH(eH)}`); renderAll();
-}
-
-function showToast(msg,err=false){
-  const t=document.getElementById('toast');
-  document.getElementById('toastMsg').textContent=msg;
-  document.getElementById('toastIcon').textContent=err?'✗':'✓';
-  t.classList.toggle('error',err); t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3500);
+function showDenied(){
+  document.getElementById('ld').classList.add('h');
+  document.getElementById('detail').innerHTML='<div class="denied"><div class="denied-icon">&#x1F512;</div><div class="denied-t">Доступ ограничен</div><div class="denied-s">У вас нет доступа к бронированию переговорной RodenRoom. Обратитесь к администратору.</div></div>';
 }
 
 async function boot(){
-  document.getElementById('loading').classList.remove('hidden');
-  await api.init(); await loadData(); updateDateLabel(); renderAll();
-  setTimeout(()=>document.getElementById('loading').classList.add('hidden'),300);
+  document.getElementById('ld').classList.remove('h');
+  if(!ok){await new Promise(function(r){BX24.init(function(){BX24.fitWindow();ok=true;r()})});await lU()}
+  if(ALLOWED_USERS.length>0&&ALLOWED_USERS.indexOf(+uid)===-1){showDenied();return}
+  await loadAllUsers();await lB();uD();rA();
+  setTimeout(function(){document.getElementById('ld').classList.add('h')},250);
 }
-boot();
-setInterval(async()=>{await loadData();renderAll();},60000);
-document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+boot();setInterval(function(){lB().then(rA)},60000);
+document.getElementById('mo').addEventListener('click',function(e){if(e.target===e.currentTarget)clMo()});
+document.addEventListener('click',function(e){var d=document.getElementById('upDrop');if(d&&!e.target.closest('.up-box'))d.classList.remove('vis')});
 </script>
-
-<!-- Раскомментируйте при встраивании в Битрикс24 -->
-<!-- <script src="//api.bitrix24.com/api/v1/"></script> -->
 </body>
 </html>
